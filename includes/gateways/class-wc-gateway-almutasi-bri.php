@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 class WC_Gateway_Almutasi_BRI extends Almutasi_Gateway
 {
-    public $sub_id = 'almutasi_bri';
+    public $sub_id = 'almutasi_woocommerce_bri';
     
     public function __construct()
     {
@@ -62,11 +62,19 @@ class WC_Gateway_Almutasi_BRI extends Almutasi_Gateway
                 'description' => '',
                 'default' => 'Pembayaran melalui ' . $this->method_title,
             ),
-            'expired' => array(
-                'title' => __("Masa Berlaku Nominal Unik", "wc-almutasi"),
-                "type" => 'number',
-                'description' => __('Masa berlaku nominal unik dalam satuan menit', 'wc-almutasi'),
-                'default' => '1440',
+            'account_number' => array(
+                'title' => __('Nomor Rekening', 'wc-almutasi'),
+                'label' => '',
+                'type' => 'text',
+                'description' => '',
+                'default' => '',
+            ),
+            'account_name' => array(
+                'title' => __('Atas Nama Rekening', 'wc-almutasi'),
+                'label' => '',
+                'type' => 'text',
+                'description' => '',
+                'default' => '',
             )
         );
     }

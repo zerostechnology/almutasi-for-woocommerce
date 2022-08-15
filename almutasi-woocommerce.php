@@ -58,7 +58,7 @@ function almutasi_woocommerce_init()
                 $this->title = empty($this->settings['title']) ? "Bank Transfer (Otomatis)" : $this->settings['title'];
                 $this->account_number = $this->settings['account_number'];
                 $this->account_name = $this->settings['account_name'];
-                $this->expired =  @intval($this->settings["expired"]) <= 0 ? 1 : @intval($this->settings["expired"]);
+                $this->uniqueValidity = get_option('almutasi_woocommerce_unique_validity', 1440);
                 $this->enabled = isset($this->settings['enabled']) == 'yes' ? true : false;
                 $this->description = isset($this->settings['description']) ? $this->settings['description']: '';
                 $this->apikey = get_option('almutasi_woocommerce_api_key');
@@ -80,7 +80,7 @@ function almutasi_woocommerce_init()
             {
                 if (!$sent_to_admin && $this->id === $order->get_payment_method() && ($order->has_status('pending') || $order->has_status('on-hold'))) {
                     
-                    $expiredTime = strtotime($order->get_date_created()) + ($this->expired * 60);
+                    $expiredTime = strtotime($order->get_date_created()) + ($this->uniqueValidity * 60);
                     $serviceName = get_post_meta($order->get_id(), '_almutasi_service_name', true);
                     $serviceCode = get_post_meta($order->get_id(), '_almutasi_service_code', true);
                     $accountNumber = get_post_meta($order->get_id(), '_almutasi_account_number', true);
@@ -123,8 +123,20 @@ function almutasi_woocommerce_init()
 
             public function process_payment($order_id)
             {
-                if (!$this->enabled) {
-                    wc_add_notice("Payment method is not available", "error");
+                global $woocommerce;
+
+                if (! $this->enabled) {
+                    wc_add_notice("Metode pembayaran tidak tersedia", "error");
+                    return;
+                }
+
+                if (get_woocommerce_currency() !== 'IDR') {
+                    wc_add_notice("Metode pembayaran hanya mendukung mata uang Rupiah (IDR)", "error");
+                    return;
+                }
+
+                if (empty($this->account_number) || empty($this->account_name)) {
+                    wc_add_notice("Metode pembayaran tidak dapat digunakan", "error");
                     return;
                 }
 
@@ -138,12 +150,17 @@ function almutasi_woocommerce_init()
                 }
 
                 switch ($this->redirectPage) {
-                    case "orderpay": $redirectTo = $order->get_checkout_payment_url(); break;
+                    case "orderpay":
+                        $redirectTo = $order->get_checkout_payment_url();
+                        break;
+
                     case "thankyou":
-                    default:         $redirectTo = $this->get_return_url($order); break;
+                    default:
+                        $redirectTo = $this->get_return_url($order);
+                        break;
                 }
 
-                $expired_time = (time()+(60*$this->expired));
+                $expired_time = (time()+(60*$this->uniqueValidity));
 
                 if (get_option('woocommerce_manage_stock', 'yes') === 'yes' && get_option('woocommerce_hold_stock_minutes') > 0) {
                     $held_duration = get_option('woocommerce_hold_stock_minutes');
@@ -201,16 +218,10 @@ function almutasi_woocommerce_init()
                 }
 
                 if ($webhook->event == 'mutation:new') {
-                    
-                    $range_order = $this->expired;
-                    if (get_option('woocommerce_manage_stock', 'yes') === 'yes' && get_option('woocommerce_hold_stock_minutes') > 0) {
-                        $range_order = get_option('woocommerce_hold_stock_minutes');
-                    }
-
                     $results = [];
 
                     foreach ($webhook->data->mutations as $mutation) {
-                        do_action('almutasi-woocommerce-before-auto-confirm', $mutation);
+                        do_action('almutasi_woocommerce_before_auto_confirm', $mutation);
                         $args = array(
                             'post_type'     => 'shop_order',
                             'meta_query' => array(
@@ -227,32 +238,29 @@ function almutasi_woocommerce_init()
                                     'type'    => 'string',
                                     'compare' => '=',
                                 ),
+                                array(
+                                    'key'     => '_almutasi_expired_time',
+                                    'value'   => time(),
+                                    'type'    => 'numeric',
+                                    'compare' => '<',
+                                ),
                             ),
                             'post_status'   => array('wc-on-hold', 'wc-pending'),
-                            'date_query'    => array(
-                                array(
-                                    'column'    =>  'post_date_gmt',
-                                    'after'    =>  $range_order . ' minutes ago'
-                                )
-                            )
                         );
                         $query = new WP_Query($args);
 
                         if( $query->have_posts() ) {
                             if ($query->found_posts > 1) {
-            
                                 /** Send notification to admin */
                                 $admin_email = get_bloginfo('admin_email');
-                                $message = sprintf( __( 'Hai Admin.' ) ) . "\r\n\r\n";
-                                $message .= sprintf( __( 'Ada order yang sama, dengan nominal Rp %s' ), $mutation->amount ). "\r\n\r\n";
-                                $message .= sprintf( __( 'Mohon dicek manual.' ) ). "\r\n\r\n";
-                                wp_mail( $admin_email, sprintf( __( '[%s] Ada nominal order yang sama - alMutasi' ), get_option('blogname') ), $message );
-            
+                                $message = "Hai Admin\r\n\r\n";
+                                $message .= sprintf("Ada order yang sama, dengan nominal Rp %s", $mutation->amount). "\r\n\r\n";
+                                $message .= "Mohon dicek manual";
+                                wp_mail( $admin_email, sprintf('[%s] Ada nominal order yang sama - alMutasi', get_option('blogname')), $message );
                             } else {
-            
-                                while ( $query->have_posts() ) {
+                                while ($query->have_posts()) {
                                     $query->the_post();
-                                    $order = new WC_Order( get_the_ID() );
+                                    $order = new WC_Order(get_the_ID());
                                     if( $order->has_status($this->successStatus) ) {
                                         continue;
                                     }
@@ -264,7 +272,6 @@ function almutasi_woocommerce_init()
                                     ));
                                 }
                                 wp_reset_postdata();
-            
                             }
                         }
                     }

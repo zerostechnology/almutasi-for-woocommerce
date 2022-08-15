@@ -13,7 +13,9 @@ class Almutasi
 
     public static function init()
     {
-        $request = $_REQUEST;
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
 
         add_filter('woocommerce_settings_tabs_array', array(__CLASS__, 'add_almutasi_settings_tab'), 50);
         add_action('woocommerce_settings_tabs_almutasi_settings', array(__CLASS__, 'almutasi_settings_page'));
@@ -22,9 +24,7 @@ class Almutasi
         add_action('woocommerce_review_order_before_payment', array(__CLASS__, 'wp_refresh_checkout_on_payment_methods_change'));
         add_action('woocommerce_view_order', array(__CLASS__, 'view_order_and_thankyou_page' ), 1, 1);
         add_action('woocommerce_thankyou', array(__CLASS__, 'view_order_and_thankyou_page' ), 1, 1);
-
-        //load fee API before checkout
-        add_action('woocommerce_review_order_before_payment', array(__CLASS__, 'fee'), 1, 1);
+        add_action('woocommerce_checkout_order_processed', array(__CLASS__, 'clear_session'), 1, 1);
     }
 
     public static function wp_encrypt($text)
@@ -141,97 +141,104 @@ class Almutasi
 
     public static function wp_add_checkout_fees($order_id)
     {
-        global $wpdb;
+        global $wpdb, $woocommerce;
 
         if (is_admin() && ! defined('DOING_AJAX')) {
             return;
         }
-        
+
+        if ($woocommerce->cart->subtotal <= 0) {
+            return;
+        }
+
         $chosen_gateway = WC()->session->get('chosen_payment_method');
 
-        $gateways = self::gateways();
+        if (empty($chosen_gateway)) {
+            return;
+        }
 
-        foreach ($gateways as $id) {
-            if ($chosen_gateway == self::$option_prefix.'_'.$id) {
-                $uniqueLabel = get_option(self::$option_prefix.'_unique_label', 'Kode Unik');
-                $uniqueCode = self::get_unique_code();
-                if ($uniqueCode !== 0) {
-                    WC()->cart->add_fee(
-                        $uniqueLabel,
-                        self::convertFromIdr($uniqueCode, get_woocommerce_currency(), $exchangeValue)
-                    );
+        if (is_cart()) {
+            return;
+        }
+
+        $exchangeValue = get_option(self::$option_prefix.'_exchange_rate', null);
+        $uniqueLabel = get_option(self::$option_prefix.'_unique_label', 'Kode Unik');
+
+        $carts = $woocommerce->cart->get_cart();
+        if (is_array($carts) && count($carts) > 0) {
+            foreach ($carts as $key => $cart) {
+                $sessionKey = session_id() . '_cart_unique_code' . $key;
+                if (! isset($_SESSION[$sessionKey])) {
+                    $uniqueCode = self::get_unique_code($woocommerce->cart->subtotal);
+
+                    if ($uniqueCode === 0 || $uniqueCode === null) {
+                        wc_add_notice("Gagal membuat nominal unik", "error");
+                        return;
+                    }
+
+                    if (count($woocommerce->cart->get_fees()) === 0) {
+                        $woocommerce->cart->add_fee(
+                            $uniqueLabel,
+                            self::convertFromIdr($uniqueCode, get_woocommerce_currency(), $exchangeValue),
+                            true,
+                            ''
+                        );
+                        $_SESSION[$sessionKey] = $uniqueCode;
+                    }
                 } else {
-
+                    $woocommerce->cart->add_fee(
+                        $uniqueLabel,
+                        self::convertFromIdr($_SESSION[$sessionKey], get_woocommerce_currency(), $exchangeValue),
+                        true,
+                        ''
+                    );
                 }
-                break;
             }
         }
     }
     
-    private static function get_unique_code()
+    private static function get_unique_code($amount)
     {
-        global $wpdb;
-
         $uniqueCode = 0;
-        $uniqueLabel = get_option(self::$option_prefix.'_unique_label', 'Kode Unik');
         $uniqueMin = (int) get_option(self::$option_prefix.'_unique_min', 1);
-        $uniqueMax = (int) get_option(self::$option_prefix.'_unique_max', 9999);
+        $uniqueMax = (int) get_option(self::$option_prefix.'_unique_max', 1999);
         $uniqueType = get_option(self::$option_prefix.'_unique_type', 'increase');
-        $validity = (int) get_option(self::$option_prefix.'_expired', 1440);
 
-        $sql = "
-            SELECT p.`ID`, oi.`order_item_id`, oim.`meta_value` `unique_code`
-            FROM `{$wpdb->prefix}posts` p
-            LEFT JOIN `{$wpdb->prefix}woocommerce_order_items` oi
-            ON (
-                oi.`order_id` = p.`ID`
-                AND oi.`order_item_type` = 'fee'
-                AND oi.`order_item_name` = '{$uniqueLabel}'
-            )
-            LEFT JOIN `{$wpdb->prefix}woocommerce_order_itemmeta` oim
-            ON (
-                oim.`order_item_id` = oi.`order_item_id`
-                AND oim.`meta_key` = '_fee_amount'
-            )
-            WHERE `post_type`='shop_order'
-            AND `post_status` IN (
-                'wc-on-hold', 'wc-pending'
-            )
-            AND `post_date` >= DATE(NOW()) - INTERVAL {$validity} MINUTE
-            LIMIT 0, {$uniqueMax}
-        ";
-
-        $results = $wpdb->get_results($sql, OBJECT);
-
-        $uqCodes = [];
-
-        foreach ($results as $meta) {
-            if (empty($meta->unique_code) && $meta->unique_code != '0') {
-                continue;
+        $trying = 20;
+        while ($trying > 0) {
+            $trying--;
+            $uniqueCode = mt_rand($uniqueMin, $uniqueMax);
+            $totalAmount = ($uniqueType == 'increase') ? ($amount+$uniqueCode) : ($amount-$uniqueCode);
+            $args = array(
+                'post_type'     => 'shop_order',
+                'meta_query' => array(
+                    'relation' => 'AND',
+                    array(
+                        'key'     => '_order_total',
+                        'value'   => $totalAmount,
+                        'type'    => 'numeric',
+                        'compare' => '=',
+                    ),
+                    array(
+                        'key'     => '_almutasi_expired_time',
+                        'value'   => time() - (15*60),
+                        'type'    => 'numeric',
+                        'compare' => '>',
+                    ),
+                ),
+                'post_status'   => array('wc-on-hold', 'wc-pending'),
+            );
+            $query = new WP_Query($args);
+            if (! $query->have_posts()) {
+                break;
             }
-            array_push($uqCodes, array($meta->unique_code));
-        }
 
-
-        $uniqueCode = null;
-        $loopCount = 0;
-
-        while (empty($uniqueCode) && ++$loopCount <= count($uqCodes)) {
-            $uniqueCode = mt_rand( $uniqueMin, $uniqueMax );
-            if( $uniqueType == 'decrease') {
-                $uniqueCode = (int) -$uniqueCode;
-            }
-            $uniqueCode = !empty($uqCodes) && in_array($uniqueCode, $uqCodes) ? null : $uniqueCode;
-        }
-
-        if($uniqueCode == 0 || $uniqueCode === null) {
-            $uniqueCode = $uniqueMin;
-            if( $uniqueType == 'decrease') {
-                $uniqueCode = (int) -$uniqueCode;
+            if ($trying <= 1) {
+                return 0;
             }
         }
 
-        return $uniqueCode;
+        return $totalAmount - $amount;
     }
 
     public static function wp_refresh_checkout_on_payment_methods_change()
@@ -245,6 +252,23 @@ class Almutasi
 			})(jQuery);
 		</script>
 		<?php
+    }
+
+    public static function clear_session($order_id)
+    {
+        global $woocommerce, $post;
+
+        $order = new WC_Order($order_id);
+        $items = $order->get_items();
+        $carts = $woocommerce->cart->get_cart();
+        foreach ($items as $item) {
+            foreach ($carts as $key => $cart) {
+                $sessionKey = session_id() . '_cart_unique_code' . $key;
+                if ($cart['product_id'] == $item->get_product_id()) {
+                    unset($_SESSION[$sessionKey]);
+                }
+            }
+        }
     }
 
     public static function add_almutasi_settings_tab($woocommerce_tab)
@@ -277,25 +301,33 @@ class Almutasi
             ),
             array(
                 'title' => __('API Key', 'wc-almutasi'),
-                'desc' => 'Lihat <a href="https://app.almutasi.com/integration?tab=keys" traget="_blank">di sini</a>',
+                'desc' => 'Silahkan lihat <a href="https://app.almutasi.com/integration?tab=keys" target="_blank">di sini</a>. Mohon sesuaikan dengan mode integrasi diatas',
                 'id' => self::$option_prefix . '_api_key',
                 'type' => 'text',
                 'css' => 'width:25em;',
                 'default' => '',
             ),
             array(
-                'title' => __("Private Key", "wc-tripay"),
-                "desc" => 'Lihat <a href="https://app.almutasi.com/integration?tab=keys" traget="_blank">di sini</a>',
+                'title' => __("Private Key", "wc-almutasi"),
+                "desc" => 'Silahkan lihat <a href="https://app.almutasi.com/integration?tab=keys" target="_blank">di sini</a>. Mohon sesuaikan dengan mode integrasi diatas',
                 "id" => self::$option_prefix."_private_key",
                 "type" => "text",
                 "css" => "width:25em",
                 "default" => ""
             ),
             array(
+                'title' => __("Label Kode Unik", "wc-almutasi"),
+                "desc" => '',
+                "id" => self::$option_prefix."_unique_label",
+                "type" => "text",
+                "css" => "width:25em",
+                "default" => "Kode Unik"
+            ),
+            array(
                 'title' => __('Tipe Kode Unik', 'wc-almutasi'),
                 'label' => '',
                 'type' => 'select',
-                'description' => __('', 'wc-almutasi'),
+                'desc' => '<b>Tambahkan =</b> Nominal transaksi ditambah kode unik.<br/><b>Kurangkan =</b> Nominal transaksi dikurangi kode unik',
                 'default'   =>  'increase',
                 'options' => array(
                     'increase'      => 'Tambahkan',
@@ -321,8 +353,16 @@ class Almutasi
                 'default' => '1999',
             ),
             array(
-                'title' => __('Aktifkan Debugging', 'wc-almutasi'),
-                'desc' => __('Aktifkan/Nonaktifkan log transaksi.<br/>Log dapat dilihat di menu WooCommerce > Status > Logs'),
+                'title' => __('Masa Berlaku Nominal Unik', 'wc-almutasi'),
+                'desc' => 'Masa belaku nominal unik dalam satuan menit',
+                'id' => self::$option_prefix . '_unique_validity',
+                'type' => 'number',
+                'css' => 'width:25em;',
+                'default' => '1440',
+            ),
+            array(
+                'title' => __('Aktifkan Log', 'wc-almutasi'),
+                'desc' => __('<br/>Log dapat dilihat di menu WooCommerce > Status > Logs'),
                 'id' => self::$option_prefix . '_debug',
                 'type' => 'checkbox',
                 'default' => 'no',
@@ -355,17 +395,17 @@ class Almutasi
             ),
             array(
                 'title' => __('Aktifkan Email Invoice ke Pelanggan', 'wc-almutasi'),
-                'desc' => 'Aktifkan/nonaktifkan email invoice yang dikirim ke pelanggan',
+                'desc' => '<br/>Aktifkan/nonaktifkan email invoice yang dikirim ke pelanggan',
                 'id' => self::$option_prefix . '_customer_invoice_email',
                 'type' => 'checkbox',
                 'default' => 'yes',
                 'css' => 'width:25em;',
             ),
             array(
-                'title' => __('Setelah checkout redirect ke?', 'wc-almutasi'),
+                'title' => __('Halaman checkout', 'wc-almutasi'),
                 'label' => '',
                 'type' => 'select',
-                'description' => __('Setelah konsumen checkout, pilih ke halaman mana pelanggan akan dialihkan', 'wc-almutasi'),
+                'desc' => __('Setelah konsumen checkout, pilih ke halaman mana pelanggan akan dialihkan', 'wc-almutasi'),
                 'default'   =>  'thankyou',
                 'options' => array(
                     'thankyou'      => 'Thank You Page',
