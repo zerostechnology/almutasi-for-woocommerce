@@ -303,3 +303,31 @@ function almutasi_woocommerce_init()
         include_once $filename;
     }
 }
+
+function almutasi_woocommerce_warning() {
+    ?>
+    <div class="update-nag notice" style="display: block;">
+        <p><?php _e( '<b>alMutasi for WooCommerce</b> Dalam Mode <b>Development</b>', 'almutasi_woocommerce' ); ?></p>
+    </div>
+    <?php
+}
+
+function almutasi_woocommerce_wc_warning() {
+    ?>
+    <div class="update-nag notice" style="display: block;">
+        <p><?php _e( 'Plugin <b>WooCommerce</b> belum terinstall.', 'almutasi_woocommerce' ); ?></p>
+    </div>
+    <?php
+}
+
+add_action('wp_loaded', 'almutasi_woocommerce_loaded');
+function almutasi_woocommerce_loaded() {
+    if ( !class_exists( 'WooCommerce' ) ) {
+        add_action( 'admin_notices', 'almutasi_woocommerce_wc_warning' );
+        return;
+    }
+
+    if(get_option('almutasi_woocommerce_mode', 'development') === 'development') {
+        add_action( 'admin_notices', 'almutasi_woocommerce_warning' );
+    }
+}

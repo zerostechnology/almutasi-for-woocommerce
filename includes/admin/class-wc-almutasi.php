@@ -257,7 +257,7 @@ class Almutasi
     {
         $settings = apply_filters('woocommerce_' . self::$tab_name, array(
             array(
-                'title' => 'alMutasi',
+                'title' => 'alMutasi Global Setting',
                 'id' => self::$option_prefix . '_global_settings',
                 'desc' => '',
                 'type' => 'title',
@@ -266,11 +266,11 @@ class Almutasi
             array(
                 'title' => __('Mode Integrasi', 'wc-almutasi'),
                 'type' => 'select',
-                'desc' => __('Mode integrasi sistem.<br/><b>Sandbox</b> digunakan untuk testing<br/><b>Production</b> digunakan untuk transaksi riil', 'wc-almutasi'),
+                'desc' => __('Mode integrasi sistem.<br/><b>Development</b> digunakan untuk testing<br/><b>Production</b> digunakan untuk transaksi riil', 'wc-almutasi'),
                 'id' => self::$option_prefix.'_mode',
-                'default' => 'sandbox',
+                'default' => 'development',
                 'options' => array(
-                    'sandbox' => 'Sandbox',
+                    'development' => 'Development',
                     'production' => 'Production'
                 ),
                 'css' => 'width:25em;',
