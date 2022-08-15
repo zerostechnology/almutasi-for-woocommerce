@@ -5,8 +5,8 @@ Plugin Name: alMutasi for WooCommerce
 Plugin URI: https://almutasi.com
 Description: Verifikasi pembayaran otomatis berbasis nominal unik
 Version: 0.1.0
-Author: PT Zeros Mercusuar Teknologi
-Author URI: https://zeros.co.id
+Author: alMutasi.com
+Author URI: https://almutasi.com
 WC requires at least: 3.1.0
 WC tested up to: 6.8.0
 License: GNU General Public License v3.0
@@ -307,7 +307,7 @@ function almutasi_woocommerce_init()
 function almutasi_woocommerce_warning() {
     ?>
     <div class="update-nag notice" style="display: block;">
-        <p><?php _e( '<b>alMutasi for WooCommerce</b> Dalam Mode <b>Development</b>', 'almutasi_woocommerce' ); ?></p>
+        <p><?php _e( '<b>alMutasi for WooCommerce</b>: Plugin dalam mode <b>Development</b>', 'almutasi_woocommerce' ); ?></p>
     </div>
     <?php
 }
@@ -315,7 +315,7 @@ function almutasi_woocommerce_warning() {
 function almutasi_woocommerce_wc_warning() {
     ?>
     <div class="update-nag notice" style="display: block;">
-        <p><?php _e( 'Plugin <b>WooCommerce</b> belum terinstall.', 'almutasi_woocommerce' ); ?></p>
+        <p><?php _e( '<b>alMutasi for WooCommerce</b>: WooCommerce belum terinstall!', 'almutasi_woocommerce' ); ?></p>
     </div>
     <?php
 }
