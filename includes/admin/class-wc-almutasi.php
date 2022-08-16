@@ -294,7 +294,7 @@ class Almutasi
             array(
                 'title' => __('Mode Integrasi', 'wc-almutasi'),
                 'type' => 'select',
-                'desc' => __('Mode integrasi sistem.<br/><b>Development</b> digunakan untuk testing<br/><b>Production</b> digunakan untuk transaksi riil', 'wc-almutasi'),
+                'desc' => __('<b>Development</b> digunakan untuk testing<br/><b>Production</b> digunakan untuk transaksi riil', 'wc-almutasi'),
                 'id' => self::$option_prefix.'_mode',
                 'default' => 'development',
                 'options' => array(
@@ -387,12 +387,11 @@ class Almutasi
             array(
                 'title' => __('Status Sukses', 'wc-almutasi'),
                 'type' => 'select',
-                'desc' => __('Status pesanan setelah pembayaran berhasil', 'wc-almutasi'),
+                'desc' => __('Status pesanan setelah pembayaran divalidasi', 'wc-almutasi'),
                 'id' => self::$option_prefix.'_success_status',
                 'default' => 'processing',
                 'options' => array(
                     'completed' => 'Completed',
-                    'on-hold' => 'On Hold',
                     'processing' => 'Processing',
                 ),
                 'css' => 'width:25em;',
@@ -493,17 +492,7 @@ class Almutasi
 
     public static function webhook_url()
     {
-        $checkoutUrl = wc_get_checkout_url();
-
-        $hasQuery = !empty(parse_url($checkoutUrl, PHP_URL_QUERY));
-
-        if ($hasQuery) {
-            $checkoutUrl = rtrim($checkoutUrl, '&').'&wc-api=wc_gateway_almutasi';
-        } else {
-            $checkoutUrl = $checkoutUrl.'?wc-api=wc_gateway_almutasi';
-        }
-
-        return $checkoutUrl;
+        return get_site_url(get_current_blog_id(), '?wc-api=wc_gateway_almutasi');
     }
 
     public static function convertToIdr($value, $optionValue = null)
