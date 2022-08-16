@@ -152,17 +152,6 @@ function almutasi_woocommerce_init()
                     $order->update_status('pending', __('Menunggu Pembayaran dengan ' . $this->title, 'woocommerce'));
                 }
 
-                switch ($this->redirectPage) {
-                    case "orderpay":
-                        $redirectTo = $order->get_checkout_payment_url();
-                        break;
-
-                    case "thankyou":
-                    default:
-                        $redirectTo = $this->get_return_url($order);
-                        break;
-                }
-
                 $expired_time = (time()+(60*$this->uniqueValidity));
 
                 if (get_option('woocommerce_manage_stock', 'yes') === 'yes' && get_option('woocommerce_hold_stock_minutes') > 0) {
@@ -190,7 +179,7 @@ function almutasi_woocommerce_init()
                     
                 return array(
                     'result' => 'success',
-                    'redirect' => $redirectTo,
+                    'redirect' => $order->get_checkout_payment_url(),
                 );
             }
 

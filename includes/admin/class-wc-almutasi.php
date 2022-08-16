@@ -404,20 +404,7 @@ class Almutasi
                 'type' => 'checkbox',
                 'default' => 'yes',
                 'css' => 'width:25em;',
-            ),
-            array(
-                'title' => __('Halaman checkout', 'wc-almutasi'),
-                'label' => '',
-                'type' => 'select',
-                'desc' => __('Setelah konsumen checkout, pilih ke halaman mana pelanggan akan dialihkan', 'wc-almutasi'),
-                'default'   =>  'thankyou',
-                'options' => array(
-                    'thankyou'      => 'Thank You Page',
-                    'orderpay'		=> 'Order Pay',
-                ),
-                'id'   => self::$option_prefix.'_redirect_page',
-                'css' => 'width:25em;',
-            ),
+            )
         ));
         return apply_filters('woocommerce_' . self::$tab_name, $settings);
     }
