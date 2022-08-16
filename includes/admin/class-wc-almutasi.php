@@ -414,59 +414,7 @@ class Almutasi
 
         woocommerce_admin_fields($form);
 
-        $currencyExhanges = get_option('almutasi_woocommerce_exchange_rate', '{"usd_idr": 0}');
-        $currencyExhanges = json_decode($currencyExhanges, true);
-
-        $i = 0;
-        foreach ($currencyExhanges as $key => $value) {
-            $fromCur = strtoupper(explode("_", $key)[0]);
-            $echo = '<tr valign="top" class="currency_conversion_field">
-				<th scope="row" class="titledesc">';
-
-            if ($i == 0) {
-                $echo .= '<label>Kurs Konversi ke IDR</label>';
-            }
-
-            $echo .= '</th>
-				<td class="forminp forminp-text">
-					<div style="width:7em;display:inline-block;margin-right:5px">
-						<input name="almutasi_woocommerce_exchange_rate_from[]" type="text" value="'.$fromCur.'" class="" placeholder="Mata uang" style="width:100%;text-transform:uppercase">
-					</div>
-					<div style="width:10em;display:inline-block;margin-right:5px">
-						<input name="almutasi_woocommerce_exchange_rate_value[]" type="number" value="'.$value.'" class="" placeholder="Nilai Tukar" style="width:100%">
-					</div>
-					<div style="width:4em;display:inline-block">';
-
-            if ($i == 0) {
-                $echo .= '<button type="button" style="vertical-align: top;font-size: 18px;" onclick="addCurrencyConversionField()">+</button>';
-            } else {
-                $echo .= '<button type="button" style="vertical-align: top;font-size: 18px;" onclick="removeCurrencyConversionField(this)">x</button>';
-            }
-                        
-            $echo .= '
-					</div>
-				</td>
-			</tr>';
-
-            echo $echo;
-
-            $i++;
-        }
-
         echo '<tr valign="top"><th scope="row" class="titledesc"><label for="almutasi_woocommerce_webhook_url">Webhook URL </label></th><td class="forminp forminp-text"><input id="almutasi_woocommerce_webhook_url" type="text" value="'.self::webhook_url().'" class="" placeholder="" readonly="true" style="width:25em;"></td></tr>';
-
-        echo '<script type="text/javascript">
-			function addCurrencyConversionField() {
-				var field = "<tr valign=\"top\" class=\"currency_conversion_field\"><th scope=\"row\" class=\"titledesc\"></th><td class=\"forminp forminp-text\"><div style=\"width:7em;display:inline-block;margin-right:9px\"><input name=\"almutasi_woocommerce_exchange_rate_from[]\" type=\"text\" value=\"\" class=\"\" placeholder=\"Mata uang\" style=\"width:100%;text-transform:uppercase\"></div><div style=\"width:10em;display:inline-block;margin-right:9px\"><input name=\"almutasi_woocommerce_exchange_rate_value[]\" type=\"number\" value=\"\" class=\"\" placeholder=\"Nilai Tukar\" style=\"width:100%\"></div><div style=\"width:4em;display:inline-block\"><button type=\"button\" style=\"vertical-align: top;font-size: 18px;padding: 0px 8px;\" onclick=\"removeCurrencyConversionField(this)\">x</button></div></td></tr>";
-
-				jQuery(field).insertAfter(jQuery(".currency_conversion_field")[jQuery(".currency_conversion_field").length-1]);
-			}
-
-			function removeCurrencyConversionField(obj) {
-				jQuery(obj).parent().parent().parent().remove();
-			}
-
-		</script>';
     }
 
     public static function update_almutasi_settings()
