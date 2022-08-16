@@ -54,13 +54,13 @@ function almutasi_woocommerce_init()
                 $this->id = $this->sub_id;
                 $this->payment_method = '';
                 $this->init_settings();
-
                 $this->title = empty($this->settings['title']) ? "Bank Transfer (Otomatis)" : $this->settings['title'];
                 $this->account_number = $this->settings['account_number'];
                 $this->account_name = $this->settings['account_name'];
                 $this->uniqueValidity = get_option('almutasi_woocommerce_unique_validity', 1440);
                 $this->enabled = isset($this->settings['enabled']) == 'yes' ? true : false;
                 $this->description = isset($this->settings['description']) ? $this->settings['description']: '';
+                $this->mode = get_option('almutasi_woocommerce_mode');
                 $this->apikey = get_option('almutasi_woocommerce_api_key');
                 $this->privateKey = get_option('almutasi_woocommerce_private_key');
                 $this->successStatus = get_option('almutasi_woocommerce_success_status', 'processing');
@@ -242,7 +242,7 @@ function almutasi_woocommerce_init()
                                     'key'     => '_almutasi_expired_time',
                                     'value'   => time(),
                                     'type'    => 'numeric',
-                                    'compare' => '<',
+                                    'compare' => '>',
                                 ),
                             ),
                             'post_status'   => array('wc-on-hold', 'wc-pending'),
@@ -254,9 +254,9 @@ function almutasi_woocommerce_init()
                                 /** Send notification to admin */
                                 $admin_email = get_bloginfo('admin_email');
                                 $message = "Hai Admin\r\n\r\n";
-                                $message .= sprintf("Ada order yang sama, dengan nominal Rp %s", $mutation->amount). "\r\n\r\n";
-                                $message .= "Mohon dicek manual";
-                                wp_mail( $admin_email, sprintf('[%s] Ada nominal order yang sama - alMutasi', get_option('blogname')), $message );
+                                $message .= sprintf("Ada order yang sama dengan nominal Rp %s", number_format($mutation->amount, 0, '', '.')). "\r\n\r\n";
+                                $message .= "Mohon untuk dicek secara manual";
+                                wp_mail($admin_email, sprintf('[%s] Duplikat Order - alMutasi', get_option('blogname')), $message);
                             } else {
                                 while ($query->have_posts()) {
                                     $query->the_post();
@@ -264,11 +264,11 @@ function almutasi_woocommerce_init()
                                     if( $order->has_status($this->successStatus) ) {
                                         continue;
                                     }
-                                    $order->add_order_note('Pembayaran diverifikasi otomatis melalui: ' . $webhook->data->service->name . ' / ' . $webhook->data->account->account_number . ' -  alMutasi');
+                                    $order->add_order_note('Pembayaran diverifikasi otomatis melalui : ' . $webhook->data->service->name . ' / ' . $webhook->data->account->account_number . ' - alMutasi');
                                     $order->update_status($this->successStatus);
                                     array_push($results, array(
-                                        'order_id'  =>  $order->get_order_number(),
-                                        'status'    =>  $order->get_status(),
+                                        'order_id'  => $order->get_order_number(),
+                                        'status'    => $order->get_status(),
                                     ));
                                 }
                                 wp_reset_postdata();
