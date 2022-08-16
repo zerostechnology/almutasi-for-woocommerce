@@ -118,11 +118,15 @@ class Almutasi
                     </tr>';
 
         switch (wp_timezone_string()) {
-            case 'Asia/Jakarta':   $tz = 'WIB';  break;
+            case 'Asia/Jakarta':   $tz = 'WIB';
+                break;
             case 'Asia/Makassar':
-            case 'Asia/Pontianak': $tz = 'WITA'; break;
-            case 'Asia/Jayapura':  $tz = 'WIT';  break;
-            default:               $tz = '';     break;
+            case 'Asia/Pontianak': $tz = 'WITA';
+                break;
+            case 'Asia/Jayapura':  $tz = 'WIT';
+                break;
+            default:               $tz = '';
+                break;
         }
 
         $datetime = new \DateTime();

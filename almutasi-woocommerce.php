@@ -79,7 +79,6 @@ function almutasi_woocommerce_init()
             public function email_instructions($order, $sent_to_admin, $plain_text = false)
             {
                 if (!$sent_to_admin && $this->id === $order->get_payment_method() && ($order->has_status('pending') || $order->has_status('on-hold'))) {
-                    
                     $expiredTime = strtotime($order->get_date_created()) + ($this->uniqueValidity * 60);
                     $serviceName = get_post_meta($order->get_id(), '_almutasi_service_name', true);
                     $serviceCode = get_post_meta($order->get_id(), '_almutasi_service_code', true);
@@ -87,11 +86,15 @@ function almutasi_woocommerce_init()
                     $accountName = get_post_meta($order->get_id(), '_almutasi_account_name', true);
 
                     switch (wp_timezone_string()) {
-                        case 'Asia/Jakarta':   $tz = 'WIB';  break;
+                        case 'Asia/Jakarta':   $tz = 'WIB';
+                            break;
                         case 'Asia/Makassar':
-                        case 'Asia/Pontianak': $tz = 'WITA'; break;
-                        case 'Asia/Jayapura':  $tz = 'WIT';  break;
-                        default:               $tz = '';     break;
+                        case 'Asia/Pontianak': $tz = 'WITA';
+                            break;
+                        case 'Asia/Jayapura':  $tz = 'WIT';
+                            break;
+                        default:               $tz = '';
+                            break;
                     }
 
                     $datetime = new \DateTime();
@@ -249,7 +252,7 @@ function almutasi_woocommerce_init()
                         );
                         $query = new WP_Query($args);
 
-                        if( $query->have_posts() ) {
+                        if ($query->have_posts()) {
                             if ($query->found_posts > 1) {
                                 /** Send notification to admin */
                                 $admin_email = get_bloginfo('admin_email');
@@ -261,7 +264,7 @@ function almutasi_woocommerce_init()
                                 while ($query->have_posts()) {
                                     $query->the_post();
                                     $order = new WC_Order(get_the_ID());
-                                    if( $order->has_status($this->successStatus) ) {
+                                    if ($order->has_status($this->successStatus)) {
                                         continue;
                                     }
                                     $order->add_order_note('Pembayaran diverifikasi otomatis melalui : ' . $webhook->data->service->name . ' / ' . $webhook->data->account->account_number . ' - alMutasi');
@@ -311,30 +314,33 @@ function almutasi_woocommerce_init()
     }
 }
 
-function almutasi_woocommerce_warning() {
+function almutasi_woocommerce_warning()
+{
     ?>
     <div class="update-nag notice" style="display: block;">
-        <p><?php _e( '<b>alMutasi for WooCommerce</b>: Plugin dalam mode <b>Development</b>', 'almutasi_woocommerce' ); ?></p>
+        <p><?php _e('<b>alMutasi for WooCommerce</b>: Plugin dalam mode <b>Development</b>', 'almutasi_woocommerce'); ?></p>
     </div>
     <?php
 }
 
-function almutasi_woocommerce_wc_warning() {
+function almutasi_woocommerce_wc_warning()
+{
     ?>
     <div class="update-nag notice" style="display: block;">
-        <p><?php _e( '<b>alMutasi for WooCommerce</b>: WooCommerce belum terinstall!', 'almutasi_woocommerce' ); ?></p>
+        <p><?php _e('<b>alMutasi for WooCommerce</b>: WooCommerce belum terinstall!', 'almutasi_woocommerce'); ?></p>
     </div>
     <?php
 }
 
 add_action('wp_loaded', 'almutasi_woocommerce_loaded');
-function almutasi_woocommerce_loaded() {
-    if ( !class_exists( 'WooCommerce' ) ) {
-        add_action( 'admin_notices', 'almutasi_woocommerce_wc_warning' );
+function almutasi_woocommerce_loaded()
+{
+    if (!class_exists('WooCommerce')) {
+        add_action('admin_notices', 'almutasi_woocommerce_wc_warning');
         return;
     }
 
-    if(get_option('almutasi_woocommerce_mode', 'development') === 'development') {
-        add_action( 'admin_notices', 'almutasi_woocommerce_warning' );
+    if (get_option('almutasi_woocommerce_mode', 'development') === 'development') {
+        add_action('admin_notices', 'almutasi_woocommerce_warning');
     }
 }
