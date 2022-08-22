@@ -4,7 +4,7 @@
 Plugin Name: alMutasi for WooCommerce
 Plugin URI: https://almutasi.com
 Description: Verifikasi pembayaran otomatis berbasis nominal unik
-Version: 0.1.0
+Version: 1.0.0
 Author: alMutasi.com
 Author URI: https://almutasi.com
 WC requires at least: 3.1.0

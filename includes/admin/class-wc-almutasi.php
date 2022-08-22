@@ -8,7 +8,7 @@ class Almutasi
 {
     public static $tab_name = 'almutasi_settings';
     public static $option_prefix = 'almutasi_woocommerce';
-    public static $version = '0.1.0';
+    public static $version = '1.0.0';
     public static $baseurl = 'https://almutasi.com';
 
     public static function init()
@@ -55,11 +55,6 @@ class Almutasi
                 'code'	=> 'bca',
                 'class'	=> 'WC_Gateway_Almutasi_BCA',
             ],
-            'bsi'	=> [
-                'name'	=> 'Bank BSI',
-                'code'	=> 'bsi',
-                'class'	=> 'WC_Gateway_Almutasi_BSI',
-            ],
             'mandiri_retail3'	=> [
                 'name'	=> 'Bank Mandiri (Livin Biru)',
                 'code'	=> 'mandiri_retail3',
@@ -74,11 +69,6 @@ class Almutasi
                 'name'	=> 'BNI Direct',
                 'code'	=> 'bni_direct',
                 'class'	=> 'WC_Gateway_Almutasi_BNI_DIRECT',
-            ],
-            'mandiri_mcm'	=> [
-                'name'	=> 'Mandiri MCM',
-                'code'	=> 'mandiri_mcm',
-                'class'	=> 'WC_Gateway_Almutasi_MANDIRI_MCM',
             ],
         ];
 

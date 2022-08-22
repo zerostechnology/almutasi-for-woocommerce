@@ -3,7 +3,7 @@ Contributors: zerosdev
 Tags: ecommerce, e-commerce, store, sales, sell, shop, cart, checkout, downloadable, downloads, payment, bca, mandiri, bni, bri, otomatis, virtual account, credit card, payment gateway
 Requires at least: 4.7
 Tested up to: 6.0.1
-Stable tag: 0.1.0
+Stable tag: 1.0.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -49,5 +49,5 @@ Ya, untuk menggunakan layanan kami akan dikenakan biaya yang bervariasi tergantu
 
 == Changelog ==
 
-= 0.1.0 =
+= 1.0.0 =
 * Add: Rilis perdana
